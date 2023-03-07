@@ -75,20 +75,20 @@ namespace Avro
         /// <param name="names">list of named schemas already read</param>
         /// <param name="encspace">enclosing namespace of the named schema</param>
         /// <returns></returns>
-        internal static NamedSchema NewInstance(JObject jo, PropertyMap props, SchemaNames names, string encspace)
+        internal static NamedSchema NewInstance(JObject jo, PropertyMap props, SchemaNames names, string encspace, List<string> selected_fields = null)
         {
             string type = JsonHelper.GetRequiredString(jo, "type");
             string doc = JsonHelper.GetOptionalString(jo, "doc");
             switch (type)
             {
                 case "fixed":
-                    return FixedSchema.NewInstance(jo, props, names, encspace);
+                    return FixedSchema.NewInstance(jo, props, names, encspace, selected_fields: selected_fields);
                 case "enum":
-                    return EnumSchema.NewInstance(jo, props, names, encspace);
+                    return EnumSchema.NewInstance(jo, props, names, encspace, selected_fields: selected_fields);
                 case "record":
-                    return RecordSchema.NewInstance(Type.Record, jo, props, names, encspace);
+                    return RecordSchema.NewInstance(Type.Record, jo, props, names, encspace, selected_fields: selected_fields);
                 case "error":
-                    return RecordSchema.NewInstance(Type.Error, jo, props, names, encspace);
+                    return RecordSchema.NewInstance(Type.Error, jo, props, names, encspace, selected_fields: selected_fields);
                 default:
                     NamedSchema result;
                     if (names.TryGetValue(type, null, encspace, doc, out result))

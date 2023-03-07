@@ -51,13 +51,13 @@ namespace Avro
         /// <param name="names">list of named schemas already read</param>
         /// <param name="encspace">enclosing namespace of the map schema</param>
         /// <returns></returns>
-        internal static MapSchema NewInstance(JToken jtok, PropertyMap props, SchemaNames names, string encspace)
+        internal static MapSchema NewInstance(JToken jtok, PropertyMap props, SchemaNames names, string encspace, List<string> selected_fields = null)
         {
             JToken jvalue = jtok["values"];
             if (null == jvalue) throw new AvroTypeException($"Map does not have 'values' at '{jtok.Path}'");
             try
             {
-                return new MapSchema(ParseJson(jvalue, names, encspace), props);
+                return new MapSchema(ParseJson(jvalue, names, encspace, selected_fields: selected_fields), props);
             }
             catch (Exception e)
             {

@@ -54,7 +54,7 @@ namespace Avro
         /// <param name="names">list of named schema already parsed in</param>
         /// <param name="encspace">enclosing namespace of the fixed schema</param>
         /// <returns></returns>
-        internal static FixedSchema NewInstance(JToken jtok, PropertyMap props, SchemaNames names, string encspace)
+        internal static FixedSchema NewInstance(JToken jtok, PropertyMap props, SchemaNames names, string encspace, List<string> selected_fields = null)
         {
             SchemaName name = NamedSchema.GetName(jtok, encspace);
             var aliases = NamedSchema.GetAliases(jtok, name.Space, name.EncSpace);

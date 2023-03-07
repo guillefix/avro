@@ -45,14 +45,14 @@ namespace Avro
         /// <param name="names">list of named schemas already read</param>
         /// <param name="encspace">enclosing namespace of the schema</param>
         /// <returns>new UnionSchema object</returns>
-        internal static UnionSchema NewInstance(JArray jarr, PropertyMap props, SchemaNames names, string encspace)
+        internal static UnionSchema NewInstance(JArray jarr, PropertyMap props, SchemaNames names, string encspace, List<string> selected_fields = null)
         {
             List<Schema> schemas = new List<Schema>();
             IDictionary<string, string> uniqueSchemas = new Dictionary<string, string>();
 
             foreach (JToken jvalue in jarr)
             {
-                Schema unionType = Schema.ParseJson(jvalue, names, encspace);
+                Schema unionType = Schema.ParseJson(jvalue, names, encspace, selected_fields: selected_fields);
                 if (null == unionType)
                     throw new SchemaParseException($"Invalid JSON in union {jvalue.ToString()} at '{jvalue.Path}'");
 

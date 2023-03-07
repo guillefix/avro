@@ -39,11 +39,11 @@ namespace Avro
         /// <param name="names">list of named schemas already parsed</param>
         /// <param name="encspace">enclosing namespace for the array schema</param>
         /// <returns></returns>
-        internal static ArraySchema NewInstance(JToken jtok, PropertyMap props, SchemaNames names, string encspace)
+        internal static ArraySchema NewInstance(JToken jtok, PropertyMap props, SchemaNames names, string encspace, List<string> selected_fields = null)
         {
             JToken jitem = jtok["items"];
             if (null == jitem) throw new AvroTypeException($"Array does not have 'items' at '{jtok.Path}'");
-            var schema = Schema.ParseJson(jitem, names, encspace);
+            var schema = Schema.ParseJson(jitem, names, encspace, selected_fields: selected_fields);
             return new ArraySchema(schema, props);
         }
 

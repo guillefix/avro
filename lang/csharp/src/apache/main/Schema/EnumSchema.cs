@@ -84,7 +84,7 @@ namespace Avro
         /// <param name="names">list of named schema already parsed in</param>
         /// <param name="encspace">enclosing namespace for the enum schema</param>
         /// <returns>new instance of enum schema</returns>
-        internal static EnumSchema NewInstance(JToken jtok, PropertyMap props, SchemaNames names, string encspace)
+        internal static EnumSchema NewInstance(JToken jtok, PropertyMap props, SchemaNames names, string encspace, List<string> selected_fields = null)
         {
             SchemaName name = NamedSchema.GetName(jtok, encspace);
             var aliases = NamedSchema.GetAliases(jtok, name.Space, name.EncSpace);

@@ -171,8 +171,9 @@ namespace Avro
         /// <param name="names">list of named schema already read</param>
         /// <param name="encspace">enclosing namespace of the records schema</param>
         /// <returns>new RecordSchema object</returns>
-        internal static RecordSchema NewInstance(Type type, JToken jtok, PropertyMap props, SchemaNames names, string encspace)
+        internal static RecordSchema NewInstance(Type type, JToken jtok, PropertyMap props, SchemaNames names, string encspace, List<string> selected_fields = null)
         {
+            //Console.WriteLine(selected_fields);
             bool request = false;
             JToken jfields = jtok["fields"];    // normal record
             if (null == jfields)
@@ -205,7 +206,9 @@ namespace Avro
             foreach (JObject jfield in jfields)
             {
                 string fieldName = JsonHelper.GetRequiredString(jfield, "name");
-                Field field = createField(jfield, fieldPos++, names, name.Namespace);  // add record namespace for field look up
+                //Field field = createField(jfield, fieldPos++, names, name.Namespace);  // add record namespace for field look up
+                Field field = createField(jfield, fieldPos++, names, name.Fullname, selected_fields: selected_fields);  // add record namespace for field look up
+                if (field == null) continue;
                 fields.Add(field);
                 try
                 {
@@ -259,7 +262,7 @@ namespace Avro
         /// <param name="names">list of named schemas already read</param>
         /// <param name="encspace">enclosing namespace of the records schema</param>
         /// <returns>new Field object</returns>
-        private static Field createField(JToken jfield, int pos, SchemaNames names, string encspace)
+        private static Field createField(JToken jfield, int pos, SchemaNames names, string encspace, List<string> selected_fields = null)
         {
             var name = JsonHelper.GetRequiredString(jfield, "name");
             var doc = JsonHelper.GetOptionalString(jfield, "doc");
@@ -276,7 +279,44 @@ namespace Avro
             JToken jtype = jfield["type"];
             if (null == jtype)
                 throw new SchemaParseException($"'type' was not found for field: name at '{jfield.Path}'");
-            var schema = Schema.ParseJson(jtype, names, encspace);
+
+            string new_encspace = encspace;
+            Console.WriteLine(jtype.ToString());
+            if (jtype is JObject && (jtype.Value<string>("type")?.ToString() == "array" || jtype.Value<string>("type")?.ToString() == "map"))
+            {
+                if (encspace != null)
+                    new_encspace = encspace + "." + name;
+            }
+            var schema = Schema.ParseJson(jtype, names, new_encspace, selected_fields: selected_fields);
+
+            string fullname_expanded = encspace != null ? encspace + "." + name : null;
+            if (selected_fields != null && encspace != null)
+            {
+                string[] parts = fullname_expanded.Split('.');
+                bool found_field = false;
+                for (int i = 0; i < parts.Length; i++)
+                {
+                    if (string.Join(".", parts.Take(i + 1)) is var joined && selected_fields.Contains(joined))
+                    {
+                        found_field = true;
+                        break;
+                    }
+                }
+                Console.WriteLine(fullname_expanded);
+                foreach (string selected_field in selected_fields)
+                {
+                    if (selected_field.StartsWith(fullname_expanded + "."))
+                    {
+                        found_field = true;
+                        break;
+                    }
+                }
+                if (!found_field)
+                {
+                    return null;
+                }
+            }
+
             return new Field(schema, name, aliases, pos, doc, defaultValue, sortorder, props);
         }
 
@@ -486,7 +526,7 @@ namespace Avro
          * it could potentially happen.
          * We do a linear search for the marker as we don't expect the list to be very long.
          */
-        private T protect<T>(Function<T> bypass, Function<T> main, RecordSchema that)
+            private T protect<T>(Function<T> bypass, Function<T> main, RecordSchema that)
         {
             if (seen == null)
                 seen = new List<RecordSchemaPair>();

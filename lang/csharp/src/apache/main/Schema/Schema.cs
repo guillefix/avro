@@ -18,6 +18,7 @@
 using System;
 using Newtonsoft.Json.Linq;
 using Newtonsoft.Json;
+using System.Collections.Generic;
 
 namespace Avro
 {
@@ -154,8 +155,14 @@ namespace Avro
         /// <param name="names">list of named schemas already read</param>
         /// <param name="encspace">enclosing namespace of the schema</param>
         /// <returns>new Schema object</returns>
-        internal static Schema ParseJson(JToken jtok, SchemaNames names, string encspace)
+        internal static Schema ParseJson(JToken jtok, SchemaNames names, string encspace, List<string> selected_fields = null)
         {
+            //foreach (string field in selected_fields)
+            //{
+            //    Console.Write(field);
+            //}
+            //Console.Write("\n");
+            //Console.WriteLine(jtok.ToString());
             if (null == jtok) throw new ArgumentNullException("j", "j cannot be null.");
 
             if (jtok.Type == JTokenType.String) // primitive schema with no 'type' property or primitive or named type of a record field
@@ -172,7 +179,7 @@ namespace Avro
             }
 
             if (jtok is JArray) // union schema with no 'type' property or union type for a record field
-                return UnionSchema.NewInstance(jtok as JArray, null, names, encspace);
+                return UnionSchema.NewInstance(jtok as JArray, null, names, encspace, selected_fields: selected_fields);
 
             if (jtok is JObject) // JSON object with open/close parenthesis, it must have a 'type' property
             {
@@ -189,9 +196,9 @@ namespace Avro
                     string type = (string)jtype;
 
                     if (type.Equals("array", StringComparison.Ordinal))
-                        return ArraySchema.NewInstance(jtok, props, names, encspace);
+                        return ArraySchema.NewInstance(jtok, props, names, encspace, selected_fields: selected_fields);
                     if (type.Equals("map", StringComparison.Ordinal))
-                        return MapSchema.NewInstance(jtok, props, names, encspace);
+                        return MapSchema.NewInstance(jtok, props, names, encspace, selected_fields: selected_fields);
                     if (null != jo["logicalType"]) // logical type based on a primitive
                         return LogicalSchema.NewInstance(jtok, props, names, encspace);
 
@@ -199,10 +206,10 @@ namespace Avro
                     if (null != schema)
                         return schema;
 
-                    return NamedSchema.NewInstance(jo, props, names, encspace);
+                    return NamedSchema.NewInstance(jo, props, names, encspace, selected_fields: selected_fields);
                 }
                 else if (jtype.Type == JTokenType.Array)
-                    return UnionSchema.NewInstance(jtype as JArray, props, names, encspace);
+                    return UnionSchema.NewInstance(jtype as JArray, props, names, encspace, selected_fields: selected_fields);
                 else if (jtype.Type == JTokenType.Object)
                 {
                     if (null != jo["logicalType"]) // logical type based on a complex type
@@ -210,7 +217,7 @@ namespace Avro
                         return LogicalSchema.NewInstance(jtok, props, names, encspace);
                     }
 
-                    var schema = ParseJson(jtype, names, encspace); // primitive schemas are allowed to have additional metadata properties
+                    var schema = ParseJson(jtype, names, encspace, selected_fields: selected_fields); // primitive schemas are allowed to have additional metadata properties
                     if (schema is PrimitiveSchema)
                     {
                         return schema;
@@ -225,10 +232,10 @@ namespace Avro
         /// </summary>
         /// <param name="json">JSON string</param>
         /// <returns>new Schema object</returns>
-        public static Schema Parse(string json)
+        public static Schema Parse(string json, List<string> selected_fields = null)
         {
             if (string.IsNullOrEmpty(json)) throw new ArgumentNullException(nameof(json), "json cannot be null.");
-            return Parse(json.Trim(), new SchemaNames(), null); // standalone schema, so no enclosing namespace
+            return Parse(json.Trim(), new SchemaNames(), null, selected_fields); // standalone schema, so no enclosing namespace
         }
 
         /// <summary>
@@ -238,7 +245,7 @@ namespace Avro
         /// <param name="names">list of named schemas already read</param>
         /// <param name="encspace">enclosing namespace of the schema</param>
         /// <returns>new Schema object</returns>
-        internal static Schema Parse(string json, SchemaNames names, string encspace)
+        internal static Schema Parse(string json, SchemaNames names, string encspace, List<string> selected_fields = null)
         {
             Schema sc = PrimitiveSchema.NewInstance(json);
             if (null != sc) return sc;
@@ -249,7 +256,7 @@ namespace Avro
                     && json.EndsWith("]", StringComparison.Ordinal);
                 JContainer j = IsArray ? (JContainer)JArray.Parse(json) : (JContainer)JObject.Parse(json);
 
-                return ParseJson(j, names, encspace);
+                return ParseJson(j, names, encspace, selected_fields: selected_fields);
             }
             catch (Newtonsoft.Json.JsonSerializationException ex)
             {
