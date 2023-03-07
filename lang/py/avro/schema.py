@@ -330,7 +330,7 @@ class Field(CanonicalPropertiesMixin, EqualByJsonMixin):
             type_schema = names.get_name(type_, None)
         else:
             try:
-                print(type_)
+                # print(type_)
                 if type_ not in PRIMITIVE_TYPES and type(type_) != type([]) and type_["type"] in ["array", "map"]:
                     new_namespace = namespace + "." + name if namespace else None
                 else:
