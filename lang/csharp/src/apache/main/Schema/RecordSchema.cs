@@ -280,16 +280,37 @@ namespace Avro
             if (null == jtype)
                 throw new SchemaParseException($"'type' was not found for field: name at '{jfield.Path}'");
 
-            string new_encspace = encspace;
+            //string[] encspace_parts = encspace.Split('.');
+            //encspace_parts[encspace_parts.Length - 1] = encspace_parts[encspace_parts.Length - 1].Substring(0, 1).ToLower() + encspace_parts[encspace_parts.Length - 1].Substring(1);
+            //string new_encspace = string.Join(".", encspace_parts);
+            string new_encspace = encspace + "Types";
+            string new_encspace2 = encspace + "Types";
             Console.WriteLine(jtype.ToString());
             if (jtype is JObject && (jtype.Value<string>("type")?.ToString() == "array" || jtype.Value<string>("type")?.ToString() == "map"))
             {
                 if (encspace != null)
-                    new_encspace = encspace + "." + name;
+                    new_encspace = new_encspace + "." + name.Substring(0,1).ToUpper() + name.Substring(1) + "DataTypes";
+            }
+            if (!(jtype is JArray && ((JArray)jtype)[0].ToString() == "null"))
+            {
+                object[] new_type = { "null", jtype };
+                //Console.WriteLine(new_type);
+                jtype = JToken.FromObject(new_type);
+                Console.WriteLine(jtype.ToString());
             }
             var schema = Schema.ParseJson(jtype, names, new_encspace, selected_fields: selected_fields);
+            //schema = new UnionSchema(new List<Schema> { null, schema }, );
 
-            string fullname_expanded = encspace != null ? encspace + "." + name : null;
+            string[] simplified_encspace_parts = new_encspace2.Split('.');
+            for(int i = 0; i < simplified_encspace_parts.Length; i++)
+            {
+                if (i>1)
+                {
+                    simplified_encspace_parts[i] = simplified_encspace_parts[i].Substring(0, simplified_encspace_parts[i].Length - 9).ToLower();
+                }
+            }
+            string simplified_encspace = string.Join(".", simplified_encspace_parts);
+            string fullname_expanded = encspace != null ? simplified_encspace + "." + name : null;
             if (selected_fields != null && encspace != null)
             {
                 string[] parts = fullname_expanded.Split('.');
