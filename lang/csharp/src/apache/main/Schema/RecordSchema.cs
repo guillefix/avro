@@ -17,6 +17,7 @@
  */
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using Newtonsoft.Json.Linq;
 
@@ -304,6 +305,10 @@ namespace Avro
             string[] simplified_encspace_parts = new_encspace2.Split('.');
             for(int i = 0; i < simplified_encspace_parts.Length; i++)
             {
+                if (i==1)
+                {
+                    simplified_encspace_parts[i] = simplified_encspace_parts[i].Substring(0, simplified_encspace_parts[i].Length - 5);
+                }
                 if (i>1)
                 {
                     simplified_encspace_parts[i] = simplified_encspace_parts[i].Substring(0, simplified_encspace_parts[i].Length - 9).ToLower();
@@ -337,6 +342,11 @@ namespace Avro
                     return null;
                 }
             }
+
+            Console.WriteLine(defaultValue);
+            if (defaultValue == null)
+                defaultValue = "null";
+            Console.WriteLine(defaultValue);
 
             return new Field(schema, name, aliases, pos, doc, defaultValue, sortorder, props);
         }
@@ -511,6 +521,7 @@ namespace Avro
                                 if (null != f2) break;
                             }
 
+                    //continue;
                     if (f2 == null && f.DefaultValue != null)
                         continue;         // Writer field missing, reader has default.
 

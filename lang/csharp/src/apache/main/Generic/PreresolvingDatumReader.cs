@@ -69,7 +69,12 @@ namespace Avro.Generic
         /// <inheritdoc/>
         public T Read(T reuse, Decoder decoder)
         {
-            return (T)_reader(reuse, decoder);
+            var data = _reader(reuse, decoder);
+            UnityEngine.Debug.Log(data.GetType().ToString());
+            UnityEngine.Debug.Log(((object[]) data)[0].GetType().ToString());
+            UnityEngine.Debug.Log((typeof(T)).ToString());
+            //return (T)_reader(reuse, decoder);
+            return (T)((object[]) data)[0];
         }
 
         /// <summary>

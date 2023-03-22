@@ -331,8 +331,8 @@ class Field(CanonicalPropertiesMixin, EqualByJsonMixin):
         else:
             try:
                 # print(type_)
-                if type_ not in PRIMITIVE_TYPES and type(type_) != type([]) and type_["type"] in ["array", "map"]:
-                    new_namespace = namespace + "." + name + "DataTypes" if namespace else None
+                if type_ not in PRIMITIVE_TYPES and ((type(type_) != type([]) and type_["type"] in ["array", "map"]) or (type(type_) == type([]) and type(type_[1]) == type({}) and "type" in type_[1] and type_[1]["type"] in ["array", "map"])):
+                    new_namespace = namespace + "." + name.capitalize() + "DataTypes" if namespace else None
                 else:
                     new_namespace = namespace if namespace else None
                 type_schema = make_avsc_object(type_, names, validate_names=validate_names, selected_fields=selected_fields, namespace=new_namespace)
@@ -829,7 +829,7 @@ class RecordSchema(EqualByJsonMixin, NamedSchema):
         for field in field_data:
             if not callable(getattr(field, "get", None)):
                 raise avro.errors.SchemaParseException(f"Not a valid field: {field}")
-            type = field.get("type")
+            ftype = field.get("type")
             name = field.get("name")
 
             # null values can have a default value of None
@@ -842,6 +842,8 @@ class RecordSchema(EqualByJsonMixin, NamedSchema):
             new_namespace = fullname + "Types"
             simplified_encspace_parts = new_namespace.split('.')
             for i in range(len(simplified_encspace_parts)):
+                if i == 1:
+                    simplified_encspace_parts[i] = simplified_encspace_parts[i][:-5]
                 if i > 1:
                     simplified_encspace_parts[i] = simplified_encspace_parts[i][:-9].lower()
             simplified_encspace = '.'.join(simplified_encspace_parts)
@@ -862,9 +864,18 @@ class RecordSchema(EqualByJsonMixin, NamedSchema):
                     continue
             # import pdb; pdb.set_trace()
             # make sure field name has not been used yet
-            if not(type(type) == type([]) and type[0] == "null"):
-                type = ["null", type]
-            new_field = Field(type, name, has_default, default, order, names, doc, other_props, validate_names=validate_names, selected_fields=selected_fields, namespace=new_namespace)
+            # print(ftype)
+            # print(type(ftype))
+            # print(type(ftype) == type([]))
+            if not (type(ftype) == type([]) and ftype[0] == "null"):
+                ftype = ["null", ftype]
+            if not has_default:
+                has_default = True
+                # default = "null"
+                default = None
+            print(default)
+            print("AH")
+            new_field = Field(ftype, name, has_default, default, order, names, doc, other_props, validate_names=validate_names, selected_fields=selected_fields, namespace=new_namespace)
             if new_field.name in field_names:
                 fail_msg = f"Field name {new_field.name} already in use."
                 raise avro.errors.SchemaParseException(fail_msg)
@@ -1231,7 +1242,8 @@ def parse(json_string: str, validate_enum_symbols: bool = True, validate_names: 
         raise avro.errors.SchemaParseException(f"Error parsing JSON: {json_string}, error = {e}") from e
     
     # print(selected_fields)
-    selected_fields = [s.lower() for s in selected_fields]
+    if selected_fields is not None:
+        selected_fields = [s.lower() for s in selected_fields]
     names = Names(validate_names=validate_names)
     schema = make_avsc_object(json_data, names, validate_enum_symbols, validate_names, selected_fields=selected_fields)
     if return_names:

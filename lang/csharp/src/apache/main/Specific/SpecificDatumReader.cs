@@ -119,6 +119,20 @@ namespace Avro.Specific
 
             public void AddField(object record, string fieldName, int fieldPos, object fieldValue)
             {
+                //if (fieldValue != null)
+                //{
+                    //UnityEngine.Debug.Log(fieldName + " " + fieldPos.ToString() + " " + fieldValue.GetType().ToString() + " " + fieldValue.ToString());
+                    //UnityEngine.Debug.Log(fieldValue.GetType().ToString());
+                //}
+                //UnityEngine.Debug.Log(fieldName);
+                //UnityEngine.Debug.Log(record.ToString());
+                //UnityEngine.Debug.Log(record.GetType().ToString());
+                //if (record is EDF.HumanBioDataTypes.MotionData)
+                //{
+                //    UnityEngine.Debug.Log((EDF.HumanBioDataTypes.MotionData)record);
+                //    UnityEngine.Debug.Log((ISpecificRecord)(EDF.HumanBioDataTypes.MotionData)record);
+                //}
+                //UnityEngine.Debug.Log("AWA");
                 ((ISpecificRecord)record).Put(fieldPos, fieldValue);
             }
         }

@@ -19,6 +19,7 @@ using System;
 using System.Collections.Generic;
 using Avro.IO;
 using System.IO;
+using System.Diagnostics;
 
 namespace Avro.Generic
 {
@@ -136,7 +137,28 @@ namespace Avro.Generic
         /// <returns>Object read from the decoder.</returns>
         public T Read<T>(T reuse, Decoder decoder)
         {
-            return (T)Read(reuse, WriterSchema, ReaderSchema, decoder);
+            object data = Read(reuse, WriterSchema, ReaderSchema, decoder);
+            //return (T)data;
+#if UNITY_EDITOR
+            //UnityEngine.Debug.Log(data.ToString());
+            //UnityEngine.Debug.Log(((object[])data)[0].ToString());
+            //UnityEngine.Debug.Log(typeof(T).ToString());
+            //UnityEngine.Debug.Log(data.GetType().ToString());
+            //UnityEngine.Debug.Log(((object[])data)[0].ToString());
+            //UnityEngine.Debug.Log(((object[])data)[0].GetType().ToString());
+#endif
+            //HumanBioData awa = (HumanBioData)((object[])data)[0];
+            //UnionSchema awa = (UnionSchema)data;
+            //GenericRecord awa = (GenericRecord)(((object[])data)[0]);
+            //HumanBioData awa = (HumanBioData)(((object[])data)[0]);
+#if UNITY_EDITOR
+            //UnityEngine.Debug.Log("awa");
+#endif
+            ////HumanBioData[] awoo = (HumanBioData[]) data;
+            //HumanBioData[] awoo = new HumanBioData[] { awa };
+            return (T)data;
+            //return new HumanBioData[] { awa };
+            //return (T)(object)awoo;
         }
 
         /// <summary>
@@ -161,6 +183,9 @@ namespace Avro.Generic
                 throw new AvroException("Schema mismatch. Reader: " + readerSchema + ", writer: " + writerSchema);
             }
             */
+#if UNITY_EDITOR
+            //UnityEngine.Debug.Log(writerSchema.Tag);
+#endif
             switch (writerSchema.Tag)
             {
                 case Schema.Type.Null:
@@ -375,6 +400,12 @@ namespace Avro.Generic
         /// <returns>The default implementation returns a GenericEnum.</returns>
         protected virtual object CreateEnum(object reuse, EnumSchema es, string symbol)
         {
+#if UNITY_EDITOR
+            //UnityEngine.Debug.Log(reuse);
+            //UnityEngine.Debug.Log(es);
+            //UnityEngine.Debug.Log("lalalala");
+            //UnityEngine.Debug.Log(symbol);
+#endif
             if (reuse is GenericEnum)
             {
                 GenericEnum ge = reuse as GenericEnum;
@@ -384,6 +415,9 @@ namespace Avro.Generic
                     return ge;
                 }
             }
+#if UNITY_EDITOR
+            //UnityEngine.Debug.Log("awawawa");
+#endif
             return new GenericEnum(es, symbol);
         }
 

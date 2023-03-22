@@ -175,7 +175,8 @@ namespace Avro
                 System.Reflection.Assembly.GetExecutingAssembly()
                 .GetCustomAttribute(typeof(System.Reflection.AssemblyInformationalVersionAttribute));
 
-            return attribute.InformationalVersion;
+            //return attribute.InformationalVersion;
+            return null;
         }
     }
 }
