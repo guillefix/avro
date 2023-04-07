@@ -1254,6 +1254,28 @@ def parse(json_string: str, validate_enum_symbols: bool = True, validate_names: 
     else:
         return schema
 
+# def parse_edf(json: str, selected_fields: List[str] = None) -> 'Schema':
+def parse_edf(json_string: str, validate_enum_symbols: bool = True, validate_names: bool = True, selected_fields = None, return_names = False, auto_optional: bool = False) -> Schema:
+    if selected_fields is not None:
+        base_fields = []
+        for s in selected_fields:
+            parts = s.split('.')
+            part = parts[1][0:len(parts[1]) - 4]
+            # print(parts[2])
+            base_field = "EDF.EntitiesData." + part[0].lower() + part[1:]
+            if base_field not in base_fields:
+                base_fields.append(base_field)
+        selected_fields.extend(base_fields)
+    if json is None or json.strip() == '':
+        raise ValueError("json cannot be null.")
+    # return parse(json.strip(), SchemaNames(), None, selected_fields)  # standalone schema, so no enclosing namespace
+    names = Names(validate_names=validate_names)
+    schema = make_avsc_object(json_string.strip(), names, validate_enum_symbols, validate_names, selected_fields=selected_fields, auto_optional=auto_optional)
+    if return_names:
+        return schema, names
+    else:
+        return schema
+
 
 def from_path(path: Union[Path, str], validate_enum_symbols: bool = True, validate_names: bool = True) -> Schema:
     """
