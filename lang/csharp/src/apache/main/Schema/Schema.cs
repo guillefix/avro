@@ -235,6 +235,11 @@ namespace Avro
                 List<string> base_fields = new List<string>();
                 foreach(string s in selected_fields)
                 {
+                    if (s == "time")
+                    {
+                        base_fields.Add("EDF.EntitiesData." + s);
+                        continue;
+                    }
                     string[] parts = s.Split('.');
                     string part = parts[1].Substring(0, parts[1].Length - 4);
                     //Console.WriteLine(parts[2]);

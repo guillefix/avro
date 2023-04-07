@@ -1256,9 +1256,18 @@ def parse(json_string: str, validate_enum_symbols: bool = True, validate_names: 
 
 # def parse_edf(json: str, selected_fields: List[str] = None) -> 'Schema':
 def parse_edf(json_string: str, validate_enum_symbols: bool = True, validate_names: bool = True, selected_fields = None, return_names = False, auto_optional: bool = False) -> Schema:
+    try:
+        json_data = json.loads(json_string)
+    except json.decoder.JSONDecodeError as e:
+        raise avro.errors.SchemaParseException(f"Error parsing JSON: {json_string}, error = {e}") from e
+    
     if selected_fields is not None:
+        selected_fields = [s.lower() for s in selected_fields]
         base_fields = []
         for s in selected_fields:
+            if s == "time":
+                base_field.append("EDF.EntitiesData.time")
+                continue
             parts = s.split('.')
             part = parts[1][0:len(parts[1]) - 4]
             # print(parts[2])
@@ -1266,11 +1275,9 @@ def parse_edf(json_string: str, validate_enum_symbols: bool = True, validate_nam
             if base_field not in base_fields:
                 base_fields.append(base_field)
         selected_fields.extend(base_fields)
-    if json is None or json.strip() == '':
-        raise ValueError("json cannot be null.")
     # return parse(json.strip(), SchemaNames(), None, selected_fields)  # standalone schema, so no enclosing namespace
     names = Names(validate_names=validate_names)
-    schema = make_avsc_object(json_string.strip(), names, validate_enum_symbols, validate_names, selected_fields=selected_fields, auto_optional=auto_optional)
+    schema = make_avsc_object(json_data, names, validate_enum_symbols, validate_names, selected_fields=selected_fields, auto_optional=auto_optional)
     if return_names:
         return schema, names
     else:
