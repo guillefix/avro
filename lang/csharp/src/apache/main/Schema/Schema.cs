@@ -227,6 +227,27 @@ namespace Avro
             throw new AvroTypeException($"Invalid JSON for schema: {jtok} at '{jtok.Path}'");
         }
 
+
+        public static Schema ParseEDF(string json, List<string> selected_fields = null)
+        {
+            if (selected_fields != null)
+            {
+                List<string> base_fields = new List<string>();
+                foreach(string s in selected_fields)
+                {
+                    string[] parts = s.Split('.');
+                    string part = parts[1].Substring(0, parts[1].Length - 4);
+                    //Console.WriteLine(parts[2]);
+                    string base_field = "EDF.EntitiesData." + part.Substring(0,1).ToLower() + part.Substring(1);
+                    if (!base_fields.Contains(base_field))
+                        base_fields.Add(base_field);
+                }
+                selected_fields.AddRange(base_fields);
+            }
+            if (string.IsNullOrEmpty(json)) throw new ArgumentNullException(nameof(json), "json cannot be null.");
+            return Parse(json.Trim(), new SchemaNames(), null, selected_fields); // standalone schema, so no enclosing namespace
+        }
+
         /// <summary>
         /// Parses a given JSON string to create a new schema object
         /// </summary>

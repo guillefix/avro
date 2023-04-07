@@ -332,7 +332,7 @@ class Field(CanonicalPropertiesMixin, EqualByJsonMixin):
             try:
                 # print(type_)
                 if type_ not in PRIMITIVE_TYPES and ((type(type_) != type([]) and type_["type"] in ["array", "map"]) or (type(type_) == type([]) and type(type_[1]) == type({}) and "type" in type_[1] and type_[1]["type"] in ["array", "map"])):
-                    new_namespace = namespace + "." + name.capitalize() + "DataTypes" if namespace else None
+                    new_namespace = namespace + "." + name[0].upper() + name[1:] + "DataTypes" if namespace else None
                 else:
                     new_namespace = namespace if namespace else None
                 type_schema = make_avsc_object(type_, names, validate_names=validate_names, selected_fields=selected_fields, namespace=new_namespace)
@@ -822,7 +822,7 @@ class ErrorUnionSchema(UnionSchema):
 
 class RecordSchema(EqualByJsonMixin, NamedSchema):
     @staticmethod
-    def make_field_objects(field_data: Sequence[Mapping[str, object]], names: avro.name.Names, validate_names: bool = True, selected_fields = None, fullname = None) -> Sequence[Field]:
+    def make_field_objects(field_data: Sequence[Mapping[str, object]], names: avro.name.Names, validate_names: bool = True, selected_fields = None, fullname = None, auto_optional : bool = False) -> Sequence[Field]:
         """We're going to need to make message parameters too."""
         field_objects = []
         field_names = []
@@ -867,14 +867,15 @@ class RecordSchema(EqualByJsonMixin, NamedSchema):
             # print(ftype)
             # print(type(ftype))
             # print(type(ftype) == type([]))
-            if not (type(ftype) == type([]) and ftype[0] == "null"):
-                ftype = ["null", ftype]
-            if not has_default:
-                has_default = True
-                # default = "null"
-                default = None
-            print(default)
-            print("AH")
+            if auto_optional:
+                if not (type(ftype) == type([]) and ftype[0] == "null"):
+                    ftype = ["null", ftype]
+                if not has_default:
+                    has_default = True
+                    # default = "null"
+                    default = None
+            # print(default)
+            # print("AH")
             new_field = Field(ftype, name, has_default, default, order, names, doc, other_props, validate_names=validate_names, selected_fields=selected_fields, namespace=new_namespace)
             if new_field.name in field_names:
                 fail_msg = f"Field name {new_field.name} already in use."
@@ -901,6 +902,7 @@ class RecordSchema(EqualByJsonMixin, NamedSchema):
         doc=None,
         other_props=None,
         validate_names: bool = True,
+        auto_optional : bool = False,
         selected_fields: Optional[Sequence[str]] = None,
     ):
         # Ensure valid ctor args
@@ -924,7 +926,7 @@ class RecordSchema(EqualByJsonMixin, NamedSchema):
 
         # Add class members
         fullname = namespace + "." + name if namespace else name
-        field_objects = RecordSchema.make_field_objects(fields, names, validate_names=validate_names, selected_fields=selected_fields, fullname=fullname)
+        field_objects = RecordSchema.make_field_objects(fields, names, validate_names=validate_names, selected_fields=selected_fields, fullname=fullname, auto_optional=auto_optional)
         self.set_prop("fields", field_objects)
         if doc is not None:
             self.set_prop("doc", doc)
@@ -1143,7 +1145,7 @@ def make_logical_schema(logical_type, type_, other_props):
 
 
 def make_avsc_object(
-    json_data: object, names: Optional[avro.name.Names] = None, validate_enum_symbols: bool = True, validate_names: bool = True, selected_fields = None, namespace: Optional[str] = None
+    json_data: object, names: Optional[avro.name.Names] = None, validate_enum_symbols: bool = True, validate_names: bool = True, selected_fields = None, namespace: Optional[str] = None, auto_optional: bool = False
 ) -> Schema:
     """
     Build Avro Schema from data parsed out of JSON string.
@@ -1170,8 +1172,9 @@ def make_avsc_object(
             name = json_data.get("name")
             if not isinstance(name, str):
                 raise avro.errors.SchemaParseException(f"Name {name} must be a string, but it is {type(name)}.")
-            if namespace is None:
-                namespace = json_data.get("namespace", names.default_namespace)
+            # if namespace is None:
+            # namespace = json_data.get("namespace", names.default_namespace)
+            namespace = json_data.get("namespace", namespace)
             if type_ == "fixed":
                 size = json_data.get("size")
                 if logical_type == "decimal":
@@ -1194,7 +1197,7 @@ def make_avsc_object(
             if type_ in ["record", "error"]:
                 fields = json_data.get("fields")
                 doc = json_data.get("doc")
-                return RecordSchema(name, namespace, fields, names, type_, doc, other_props, validate_names, selected_fields=selected_fields)
+                return RecordSchema(name, namespace, fields, names, type_, doc, other_props, validate_names, selected_fields=selected_fields, auto_optional=auto_optional)
             raise avro.errors.SchemaParseException(f"Unknown Named Type: {type_}")
 
         if type_ in PRIMITIVE_TYPES:
@@ -1227,7 +1230,7 @@ def make_avsc_object(
     raise avro.errors.SchemaParseException(fail_msg)
 
 
-def parse(json_string: str, validate_enum_symbols: bool = True, validate_names: bool = True, selected_fields = None, return_names = False) -> Schema:
+def parse(json_string: str, validate_enum_symbols: bool = True, validate_names: bool = True, selected_fields = None, return_names = False, auto_optional: bool = False) -> Schema:
     """Constructs the Schema from the JSON text.
 
     @arg json_string: The json string of the schema to parse
@@ -1245,7 +1248,7 @@ def parse(json_string: str, validate_enum_symbols: bool = True, validate_names: 
     if selected_fields is not None:
         selected_fields = [s.lower() for s in selected_fields]
     names = Names(validate_names=validate_names)
-    schema = make_avsc_object(json_data, names, validate_enum_symbols, validate_names, selected_fields=selected_fields)
+    schema = make_avsc_object(json_data, names, validate_enum_symbols, validate_names, selected_fields=selected_fields, auto_optional=auto_optional)
     if return_names:
         return schema, names
     else:

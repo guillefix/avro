@@ -188,6 +188,7 @@ namespace Avro
                 throw new SchemaParseException($"'fields' not an array for record at '{jtok.Path}'");
 
             var name = GetName(jtok, encspace);
+            //name = GetName(jtok, name.Fullname);
             var aliases = NamedSchema.GetAliases(jtok, name.Space, name.EncSpace);
             var fields = new List<Field>();
             var fieldMap = new Dictionary<string, Field>();
@@ -284,9 +285,10 @@ namespace Avro
             //string[] encspace_parts = encspace.Split('.');
             //encspace_parts[encspace_parts.Length - 1] = encspace_parts[encspace_parts.Length - 1].Substring(0, 1).ToLower() + encspace_parts[encspace_parts.Length - 1].Substring(1);
             //string new_encspace = string.Join(".", encspace_parts);
+            //Console.WriteLine(encspace);
             string new_encspace = encspace + "Types";
             string new_encspace2 = encspace + "Types";
-            Console.WriteLine(jtype.ToString());
+            //Console.WriteLine(jtype.ToString());
             if (jtype is JObject && (jtype.Value<string>("type")?.ToString() == "array" || jtype.Value<string>("type")?.ToString() == "map"))
             {
                 if (encspace != null)
@@ -315,7 +317,10 @@ namespace Avro
                 }
             }
             string simplified_encspace = string.Join(".", simplified_encspace_parts);
+            //string fullname_expanded = encspace != null ? simplified_encspace + "." + name : null;
             string fullname_expanded = encspace != null ? simplified_encspace + "." + name : null;
+            //Console.WriteLine(fullname_expanded);
+            //Console.WriteLine(selected_fields[0] + "," + selected_fields[1]);
             if (selected_fields != null && encspace != null)
             {
                 string[] parts = fullname_expanded.Split('.');
@@ -329,10 +334,12 @@ namespace Avro
                     }
                 }
                 Console.WriteLine(fullname_expanded);
+                Console.WriteLine(selected_fields[0] + "," + selected_fields[1]);
                 foreach (string selected_field in selected_fields)
                 {
                     if (selected_field.StartsWith(fullname_expanded + "."))
                     {
+                        Console.WriteLine("hi");
                         found_field = true;
                         break;
                     }
@@ -345,7 +352,9 @@ namespace Avro
 
             Console.WriteLine(defaultValue);
             if (defaultValue == null)
-                defaultValue = "null";
+            {
+                defaultValue = JToken.Parse("null");
+            }
             Console.WriteLine(defaultValue);
 
             return new Field(schema, name, aliases, pos, doc, defaultValue, sortorder, props);

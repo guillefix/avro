@@ -655,6 +655,8 @@ class DatumReader:
 
         logical_type = getattr(writers_schema, "logical_type", None)
 
+        # print("writers_schema", writers_schema)
+        # print(readers_schema)
         # function dispatch for reading data based on type of writer's schema
         if isinstance(writers_schema, avro.schema.UnionSchema) and isinstance(readers_schema, avro.schema.UnionSchema):
             return self.read_union(writers_schema, readers_schema, decoder)
@@ -919,6 +921,8 @@ class DatumReader:
         for field in writers_schema.fields:
             readers_field = readers_fields_dict.get(field.name)
             if readers_field is not None:
+                # print(field.type)
+                # print(readers_field.type)
                 field_val = self.read_data(field.type, readers_field.type, decoder)
                 read_record[field.name] = field_val
             else:
