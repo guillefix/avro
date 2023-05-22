@@ -316,7 +316,7 @@ class DecimalLogicalSchema(LogicalSchema):
 class Field(CanonicalPropertiesMixin, EqualByJsonMixin):
     _reserved_properties: Sequence[str] = FIELD_RESERVED_PROPS
 
-    def __init__(self, type_, name, has_default, default=None, order=None, names=None, doc=None, other_props=None, validate_names: bool = True, selected_fields=None, namespace=None):
+    def __init__(self, type_, name, has_default, default=None, order=None, names=None, doc=None, other_props=None, validate_names: bool = True, selected_fields=None, namespace=None, auto_optional : bool = False):
         if not name:
             raise avro.errors.SchemaParseException("Fields must have a non-empty name.")
         if not isinstance(name, str):
@@ -335,7 +335,7 @@ class Field(CanonicalPropertiesMixin, EqualByJsonMixin):
                     new_namespace = namespace + "." + name[0].upper() + name[1:] + "DataTypes" if namespace else None
                 else:
                     new_namespace = namespace if namespace else None
-                type_schema = make_avsc_object(type_, names, validate_names=validate_names, selected_fields=selected_fields, namespace=new_namespace)
+                type_schema = make_avsc_object(type_, names, validate_names=validate_names, selected_fields=selected_fields, namespace=new_namespace, auto_optional=auto_optional)
             except Exception as e:
                 raise avro.errors.SchemaParseException(f'Type property "{type_}" not a valid Avro schema: {e}')
         self.set_prop("type", type_schema)
@@ -633,7 +633,7 @@ class EnumSchema(EqualByPropsMixin, NamedSchema):
 
 
 class ArraySchema(EqualByJsonMixin, Schema):
-    def __init__(self, items, names=None, other_props=None, validate_names: bool = True, selected_fields=None, namespace=None):
+    def __init__(self, items, names=None, other_props=None, validate_names: bool = True, selected_fields=None, namespace=None, auto_optional: bool = False):
         # Call parent ctor
         Schema.__init__(self, "array", other_props, validate_names=validate_names)
         # Add class members
@@ -642,7 +642,7 @@ class ArraySchema(EqualByJsonMixin, Schema):
             items_schema = names.get_name(items, None)
         else:
             try:
-                items_schema = make_avsc_object(items, names, validate_names=self.validate_names, selected_fields=selected_fields, namespace=namespace)
+                items_schema = make_avsc_object(items, names, validate_names=self.validate_names, selected_fields=selected_fields, namespace=namespace, auto_optional=auto_optional)
             except avro.errors.SchemaParseException as e:
                 fail_msg = f"Items schema ({items}) not a valid Avro schema: {e} (known names: {names.names.keys()})"
                 raise avro.errors.SchemaParseException(fail_msg)
@@ -684,7 +684,7 @@ class ArraySchema(EqualByJsonMixin, Schema):
 
 
 class MapSchema(EqualByJsonMixin, Schema):
-    def __init__(self, values, names=None, other_props=None, validate_names: bool = True, selected_fields=None, namespace=None):
+    def __init__(self, values, names=None, other_props=None, validate_names: bool = True, selected_fields=None, namespace=None, auto_optional: bool = False):
         # Call parent ctor
         Schema.__init__(self, "map", other_props, validate_names=validate_names)
 
@@ -693,7 +693,7 @@ class MapSchema(EqualByJsonMixin, Schema):
             values_schema = names.get_name(values, None)
         else:
             try:
-                values_schema = make_avsc_object(values, names, validate_names=self.validate_names, selected_fields=selected_fields, namespace=namespace)
+                values_schema = make_avsc_object(values, names, validate_names=self.validate_names, selected_fields=selected_fields, namespace=namespace, auto_optional=auto_optional)
             except avro.errors.SchemaParseException:
                 raise
             except Exception:
@@ -738,7 +738,7 @@ class UnionSchema(EqualByJsonMixin, Schema):
     names is a dictionary of schema objects
     """
 
-    def __init__(self, schemas, names=None, validate_names: bool = True, selected_fields=None, namespace: Optional[str] = None):
+    def __init__(self, schemas, names=None, validate_names: bool = True, selected_fields=None, namespace: Optional[str] = None, auto_optional: bool = False):
         # Ensure valid ctor args
         if not isinstance(schemas, list):
             fail_msg = "Union schema requires a list of schemas."
@@ -754,7 +754,7 @@ class UnionSchema(EqualByJsonMixin, Schema):
                 new_schema = names.get_name(schema, None)
             else:
                 try:
-                    new_schema = make_avsc_object(schema, names, validate_names=self.validate_names, selected_fields=selected_fields, namespace=namespace)
+                    new_schema = make_avsc_object(schema, names, validate_names=self.validate_names, selected_fields=selected_fields, namespace=namespace, auto_optional=auto_optional)
                 except Exception as e:
                     raise avro.errors.SchemaParseException(f"Union item must be a valid Avro schema: {e}")
             # check the new schema
@@ -867,16 +867,19 @@ class RecordSchema(EqualByJsonMixin, NamedSchema):
             # print(ftype)
             # print(type(ftype))
             # print(type(ftype) == type([]))
+            # print(auto_optional)
             if auto_optional:
+                # print(ftype)
                 if not (type(ftype) == type([]) and ftype[0] == "null"):
                     ftype = ["null", ftype]
                 if not has_default:
                     has_default = True
                     # default = "null"
                     default = None
+                # print(ftype)
             # print(default)
             # print("AH")
-            new_field = Field(ftype, name, has_default, default, order, names, doc, other_props, validate_names=validate_names, selected_fields=selected_fields, namespace=new_namespace)
+            new_field = Field(ftype, name, has_default, default, order, names, doc, other_props, validate_names=validate_names, selected_fields=selected_fields, namespace=new_namespace, auto_optional=auto_optional)
             if new_field.name in field_names:
                 fail_msg = f"Field name {new_field.name} already in use."
                 raise avro.errors.SchemaParseException(fail_msg)
@@ -1206,10 +1209,10 @@ def make_avsc_object(
         if type_ in VALID_TYPES:
             if type_ == "array":
                 items = json_data.get("items")
-                return ArraySchema(items, names, other_props, validate_names, selected_fields=selected_fields, namespace=namespace)
+                return ArraySchema(items, names, other_props, validate_names, selected_fields=selected_fields, namespace=namespace, auto_optional=auto_optional)
             elif type_ == "map":
                 values = json_data.get("values")
-                return MapSchema(values, names, other_props, validate_names, selected_fields=selected_fields, namespace=namespace)
+                return MapSchema(values, names, other_props, validate_names, selected_fields=selected_fields, namespace=namespace, auto_optional=auto_optional)
             elif type_ == "error_union":
                 declared_errors = json_data.get("declared_errors")
                 return ErrorUnionSchema(declared_errors, names, validate_names)
@@ -1221,7 +1224,7 @@ def make_avsc_object(
             raise avro.errors.SchemaParseException(f"Undefined type: {type_}")
     # JSON array (union)
     elif isinstance(json_data, list):
-        return UnionSchema(json_data, names, validate_names=validate_names, selected_fields=selected_fields, namespace=namespace)
+        return UnionSchema(json_data, names, validate_names=validate_names, selected_fields=selected_fields, namespace=namespace, auto_optional=auto_optional)
     # JSON string (primitive)
     elif json_data in PRIMITIVE_TYPES:
         return PrimitiveSchema(json_data)
